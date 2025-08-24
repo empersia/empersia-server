@@ -1,0 +1,92 @@
+{
+  "majid1": {
+    "password": "1234",
+    "email": "mmm.@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid2": {
+    "password": "1234",
+    "email": "mmm@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid3": {
+    "password": "1234",
+    "email": "mmmm@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid4": {
+    "password": "1234",
+    "email": "mmm@gmal.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid5": {
+    "password": "1234",
+    "email": "mmm5@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid6": {
+    "password": "1234",
+    "email": "mmm6@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "مجید1": {
+    "password": "1234",
+    "email": "mmf@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid7": {
+    "password": "1234",
+    "email": "mmm7@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid8": {
+    "password": "1238",
+    "email": "mmm8@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  },
+  "majid10": {
+    "password": "1234",
+    "email": "mmm10@gmail.com",
+    "resources": {
+      "wood": 100,
+      "stone": 100,
+      "iron": 50
+    }
+  }
+}
