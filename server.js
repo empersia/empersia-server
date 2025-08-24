@@ -3,10 +3,10 @@ const fs = require("fs");
 const path = require("path");
 const http = require("http");
 
-// پورت Render یا fallback به 3000 برای توسعه محلی
+// Render به صورت خودکار پورت اختصاص می‌دهد
 const PORT = process.env.PORT || 3000;
 
-// ساخت HTTP server و سپس Socket.io
+// ساخت HTTP server و سپس Socket.io روی همان پورت
 const server = http.createServer();
 const io = new Server(server, { cors: { origin: "*" } });
 
@@ -110,7 +110,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// سرور را روی پورت Render اجرا کن
+// اجرا روی پورت Render
 server.listen(PORT, () => {
   console.log(`🚀 سرور Socket.io روی پورت ${PORT} اجرا شد`);
 });
