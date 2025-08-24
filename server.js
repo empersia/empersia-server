@@ -1,29 +1,33 @@
 const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
+const http = require("http");
 
 // پورت Render یا fallback به 3000 برای توسعه محلی
 const PORT = process.env.PORT || 3000;
-const io = new Server(PORT, { cors: { origin: "*" } });
+
+// ساخت HTTP server و سپس Socket.io
+const server = http.createServer();
+const io = new Server(server, { cors: { origin: "*" } });
 
 const PLAYERS_FILE = path.join(__dirname, "players.json");
 
-// --- بارگذاری بازیکنان ---
+// --- بارگذاری و ذخیره بازیکنان ---
 function loadPlayers() {
   if (!fs.existsSync(PLAYERS_FILE)) return {};
   return JSON.parse(fs.readFileSync(PLAYERS_FILE, "utf8"));
 }
 
-// --- ذخیره بازیکنان ---
 function savePlayers(players) {
   fs.writeFileSync(PLAYERS_FILE, JSON.stringify(players, null, 2));
 }
 
+// --- رویدادهای Socket.io ---
 io.on("connection", (socket) => {
   console.log("✅ کاربر وصل شد:", socket.id);
   socket.emit("message", "خوش اومدی بازیکن عزیز!");
 
-  // --- ثبت‌نام ---
+  // ثبت‌نام
   socket.on("register", (data) => {
     const { username, password, email } = data;
     if (!username || !password || !email) {
@@ -56,7 +60,7 @@ io.on("connection", (socket) => {
     socket.emit("register_response", { success: true, username });
   });
 
-  // --- ورود ---
+  // ورود
   socket.on("login", (data) => {
     const { username, password } = data;
     if (!username || !password) {
@@ -80,7 +84,7 @@ io.on("connection", (socket) => {
     socket.emit("login_response", { success: true, username, resources: players[username].resources });
   });
 
-  // --- بروزرسانی منابع ---
+  // بروزرسانی منابع
   socket.on("update_resources", (data) => {
     const { username, resources } = data;
     const players = loadPlayers();
@@ -101,10 +105,12 @@ io.on("connection", (socket) => {
     socket.emit("resources_updated", { success: true, resources });
   });
 
-  // --- قطع اتصال ---
   socket.on("disconnect", () => {
     console.log("❌ کاربر خارج شد:", socket.id);
   });
 });
 
-console.log(`🚀 سرور Socket.io روی پورت ${PORT} اجرا شد`);
+// سرور را روی پورت Render اجرا کن
+server.listen(PORT, () => {
+  console.log(`🚀 سرور Socket.io روی پورت ${PORT} اجرا شد`);
+});
