@@ -7,7 +7,12 @@ const http = require("http");
 const PORT = process.env.PORT || 3000;
 
 // ساخت HTTP server و سپس Socket.io روی همان پورت
-const server = http.createServer();
+const server = http.createServer((req, res) => {
+  // می‌توانی یک پاسخ ساده HTTP بدهی برای تست
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Empersia server is running\n');
+});
+
 const io = new Server(server, { cors: { origin: "*" } });
 
 const PLAYERS_FILE = path.join(__dirname, "players.json");
