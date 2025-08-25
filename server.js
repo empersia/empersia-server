@@ -2,7 +2,7 @@
 const http = require("http");
 const { Server } = require("socket.io");
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // Render پورت را به صورت پویا می‌دهد
 
 // سرور HTTP ساده (برای Render)
 const server = http.createServer((req, res) => {
