@@ -1,10 +1,9 @@
-// server.js ساده برای تست اتصال Render
+// server.js
 const http = require("http");
 const { Server } = require("socket.io");
 
-const PORT = process.env.PORT || 3000; // Render پورت را به صورت پویا می‌دهد
+const PORT = process.env.PORT || 3000;
 
-// سرور HTTP ساده (برای Render)
 const server = http.createServer((req, res) => {
   if (req.url === "/" || req.url === "/health") {
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
@@ -15,7 +14,6 @@ const server = http.createServer((req, res) => {
   }
 });
 
-// Socket.IO روی همان سرور
 const io = new Server(server, {
   cors: { origin: "*" },
   path: "/socket.io/",
@@ -27,7 +25,7 @@ io.on("connection", (socket) => {
   // پیام خوش آمد
   socket.emit("message", "خوش آمدید! اتصال موفق بود.");
 
-  // پاسخ به پیام ساده
+  // پاسخ به ping
   socket.on("ping", (data) => {
     console.log("📨 دریافت ping:", data);
     socket.emit("pong", "pong از سرور");
