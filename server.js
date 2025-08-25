@@ -1,9 +1,10 @@
-// server.js
+// server.js ساده برای تست اتصال Render
 const http = require("http");
 const { Server } = require("socket.io");
 
 const PORT = process.env.PORT || 3000;
 
+// سرور HTTP ساده (برای Render)
 const server = http.createServer((req, res) => {
   if (req.url === "/" || req.url === "/health") {
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
@@ -14,6 +15,7 @@ const server = http.createServer((req, res) => {
   }
 });
 
+// Socket.IO روی همان سرور
 const io = new Server(server, {
   cors: { origin: "*" },
   path: "/socket.io/",
