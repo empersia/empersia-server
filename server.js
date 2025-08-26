@@ -1,33 +1,26 @@
-// server.js ساده برای تست اتصال Render
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// سرور HTTP ساده (برای Render)
-const server = http.createServer((req, res) => {
-  if (req.url === "/" || req.url === "/health") {
-    res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-    res.end("Empersia server is running");
-  } else {
-    res.writeHead(404);
-    res.end();
-  }
-});
-
-// Socket.IO روی همان سرور
 const io = new Server(server, {
   cors: { origin: "*" },
   path: "/socket.io/",
 });
 
+// مسیری ساده برای تست
+app.get("/", (req, res) => {
+  res.send("Empersia server is running ✅");
+});
+
 io.on("connection", (socket) => {
   console.log("✅ کاربر وصل شد:", socket.id);
 
-  // پیام خوش آمد
   socket.emit("message", "خوش آمدید! اتصال موفق بود.");
 
-  // پاسخ به ping
   socket.on("ping", (data) => {
     console.log("📨 دریافت ping:", data);
     socket.emit("pong", "pong از سرور");
