@@ -3,7 +3,8 @@ const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
 const fs = require("fs");
-const bcrypt = require("bcrypt");
+// تغییر دادیم به bcryptjs
+const bcrypt = require("bcryptjs");
 
 const app = express();
 const server = http.createServer(app);
@@ -68,7 +69,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // هش کردن پسورد
+    // هش کردن پسورد با bcryptjs
     const hash = await bcrypt.hash(password, 10);
 
     // ذخیره بازیکن
