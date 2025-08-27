@@ -1,6 +1,7 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -11,11 +12,15 @@ const io = new Server(server, {
   path: "/socket.io/",
 });
 
-// مسیری ساده برای تست
-app.get("/", (req, res) => {
-  res.send("Empersia server is running ✅");
+// 👇 فایل‌های استاتیک مثل index.html, css, js
+app.use(express.static(path.join(__dirname, "public")));
+
+// تست ساده برای API
+app.get("/api", (req, res) => {
+  res.send("Empersia API is running ✅");
 });
 
+// WebSocket
 io.on("connection", (socket) => {
   console.log("✅ کاربر وصل شد:", socket.id);
 
@@ -32,5 +37,5 @@ io.on("connection", (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`🚀 سرور ساده Socket.io روی پورت ${PORT} اجرا شد`);
+  console.log(`🚀 سرور Empersia روی پورت ${PORT} اجرا شد`);
 });
