@@ -1,43 +1,41 @@
-import express from "express";
-import { createServer } from "http";
-import { Server } from "socket.io";
-import cors from "cors";
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
-app.use(cors());
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3000;
 
-const PORT = process.env.PORT || 10000;
-
-// فقط برای تست (ببینیم سرور بالا اومده)
-app.get("/", (req, res) => {
-  res.send("✅ Empersia Socket.IO Server is running...");
+const io = new Server(server, {
+  cors: { origin: "*" },
+  path: "/socket.io/",
 });
 
-const httpServer = createServer(app);
+// 👇 فایل‌های استاتیک مثل index.html, css, js
+app.use(express.static(path.join(__dirname, "public")));
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-  path: "/socket.io/", // 👈 این خیلی مهمه که با Config.gd هماهنگ باشه
+// تست ساده برای API
+app.get("/api", (req, res) => {
+  res.send("Empersia API is running ✅");
 });
 
+// WebSocket
 io.on("connection", (socket) => {
-  console.log("🔗 کلاینت وصل شد:", socket.id);
+  console.log("✅ کاربر وصل شد:", socket.id);
 
-  // دریافت پیام تست از Godot
-  socket.on("hello", (data) => {
-    console.log("📨 پیام از Godot:", data);
-    // جواب برگردون
-    socket.emit("hello_response", { msg: "سلام از سرور 👋" });
+  socket.emit("message", "خوش آمدید! اتصال موفق بود.");
+
+  socket.on("ping", (data) => {
+    console.log("📨 دریافت ping:", data);
+    socket.emit("pong", "pong از سرور");
   });
 
   socket.on("disconnect", () => {
-    console.log("⚡ کلاینت قطع شد:", socket.id);
+    console.log("❌ کاربر قطع شد:", socket.id);
   });
 });
 
-httpServer.listen(PORT, () => {
-  console.log(`🚀 سرور روی پورت ${PORT} در حال اجراست`);
+server.listen(PORT, () => {
+  console.log(`🚀 سرور Empersia روی پورت ${PORT} اجرا شد`);
 });
