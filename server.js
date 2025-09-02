@@ -23,17 +23,32 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// تست اتصال به دیتابیس
+// تست اتصال به دیتابیس + ساخت جدول
 pool.connect()
-  .then(client => {
+  .then(async (client) => {
     console.log("✅ PostgreSQL متصل شد");
+
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS players (
+          id SERIAL PRIMARY KEY,
+          username VARCHAR(50) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          resources JSONB DEFAULT '{}'
+        );
+      `);
+      console.log("✅ جدول players آماده شد");
+    } catch (err) {
+      console.error("❌ خطا در ساخت جدول:", err);
+    }
+
     client.release();
   })
   .catch(err => {
     console.error("❌ خطا در اتصال به PostgreSQL: ", err);
   });
 
-// Middleware
+// Middleware برای دریافت JSON
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -48,6 +63,7 @@ app.post("/api/register", async (req, res) => {
   if (!username || !password) return res.status(400).json({ error: "username یا password خالی است" });
 
   try {
+    // بررسی تکراری بودن یوزرنیم
     const check = await pool.query("SELECT * FROM players WHERE username=$1", [username]);
     if (check.rows.length > 0) return res.status(400).json({ error: "این نام کاربری قبلا ثبت شده" });
 
@@ -77,17 +93,6 @@ app.post("/api/login", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "خطا در سرور" });
-  }
-});
-
-// 🔹 نمایش لیست پلیرها (برای تست دیتابیس)
-app.get("/api/players", async (req, res) => {
-  try {
-    const result = await pool.query("SELECT id, username, resources FROM players");
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "خطا در خواندن اطلاعات پلیرها" });
   }
 });
 
