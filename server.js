@@ -23,7 +23,7 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// تست اتصال به دیتابیس + ساخت جدول + اضافه کردن ستون email اگر موجود نباشد
+// تست اتصال به دیتابیس + ساخت جدول و ستون email
 pool.connect()
   .then(async (client) => {
     console.log("✅ PostgreSQL متصل شد");
@@ -40,12 +40,26 @@ pool.connect()
       `);
       console.log("✅ جدول players آماده شد");
 
-      // اضافه کردن ستون email اگر وجود نداشته باشد
+      // اضافه کردن ستون email بدون NOT NULL اگر وجود نداشته باشد
       await client.query(`
         ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS email VARCHAR(100) UNIQUE NOT NULL;
+        ADD COLUMN IF NOT EXISTS email VARCHAR(100) UNIQUE;
       `);
-      console.log("✅ ستون email اضافه شد (در صورت نبودن)");
+
+      // مقداردهی پیش‌فرض برای رکوردهای قدیمی
+      await client.query(`
+        UPDATE players
+        SET email = 'unknown@example.com'
+        WHERE email IS NULL;
+      `);
+
+      // سپس ستون را NOT NULL کنیم
+      await client.query(`
+        ALTER TABLE players
+        ALTER COLUMN email SET NOT NULL;
+      `);
+
+      console.log("✅ ستون email آماده و NOT NULL شد");
     } catch (err) {
       console.error("❌ خطا در ساخت جدول یا ستون:", err);
     }
@@ -95,7 +109,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ورود پلیر (فقط فیلدهای ضروری)
+// ورود پلیر (اصلاح شده)
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
