@@ -33,6 +33,7 @@ pool.connect()
         CREATE TABLE IF NOT EXISTS players (
           id SERIAL PRIMARY KEY,
           username VARCHAR(50) UNIQUE NOT NULL,
+          email VARCHAR(100) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
           resources JSONB DEFAULT '{}'
         );
@@ -59,19 +60,30 @@ app.get("/api", (req, res) => {
 
 // ثبت‌نام پلیر
 app.post("/api/register", async (req, res) => {
-  const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: "username یا password خالی است" });
+  const { username, password, email } = req.body;
+  if (!username || !password || !email) {
+    return res.status(400).json({ error: "تمام فیلدها الزامی هستند" });
+  }
 
   try {
-    // بررسی تکراری بودن یوزرنیم
-    const check = await pool.query("SELECT * FROM players WHERE username=$1", [username]);
-    if (check.rows.length > 0) return res.status(400).json({ error: "این نام کاربری قبلا ثبت شده" });
+    // بررسی تکراری بودن یوزرنیم یا ایمیل
+    const check = await pool.query(
+      "SELECT * FROM players WHERE username=$1 OR email=$2",
+      [username, email]
+    );
+    if (check.rows.length > 0) {
+      return res.status(400).json({ error: "نام کاربری یا ایمیل قبلاً استفاده شده است" });
+    }
 
     const hashed = await bcrypt.hash(password, 10);
-    await pool.query("INSERT INTO players (username, password) VALUES ($1, $2)", [username, hashed]);
+    await pool.query(
+      "INSERT INTO players (username, email, password) VALUES ($1, $2, $3)",
+      [username, email, hashed]
+    );
+
     res.json({ success: true, message: "ثبت‌نام با موفقیت انجام شد" });
   } catch (err) {
-    console.error(err);
+    console.error("❌ خطا در ثبت‌نام:", err);
     res.status(500).json({ error: "خطا در سرور" });
   }
 });
@@ -79,19 +91,25 @@ app.post("/api/register", async (req, res) => {
 // ورود پلیر
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: "username یا password خالی است" });
+  if (!username || !password) {
+    return res.status(400).json({ error: "username یا password خالی است" });
+  }
 
   try {
     const result = await pool.query("SELECT * FROM players WHERE username=$1", [username]);
-    if (result.rows.length === 0) return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
+    }
 
     const player = result.rows[0];
     const match = await bcrypt.compare(password, player.password);
-    if (!match) return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
+    if (!match) {
+      return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
+    }
 
     res.json({ success: true, player });
   } catch (err) {
-    console.error(err);
+    console.error("❌ خطا در ورود:", err);
     res.status(500).json({ error: "خطا در سرور" });
   }
 });
