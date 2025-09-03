@@ -88,7 +88,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ورود پلیر
+// ورود پلیر (اصلاح شده)
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -107,7 +107,16 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
     }
 
-    res.json({ success: true, player });
+    // فقط فیلدهای ضروری به کلاینت ارسال می‌شود
+    res.json({
+      success: true,
+      player: {
+        id: player.id,
+        username: player.username,
+        email: player.email,
+        resources: player.resources
+      }
+    });
   } catch (err) {
     console.error("❌ خطا در ورود:", err);
     res.status(500).json({ error: "خطا در سرور" });
