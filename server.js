@@ -14,7 +14,7 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 10000;
 
-// 👇 اتصال به PostgreSQL با Environment Variables
+// اتصال به PostgreSQL با Environment Variables
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -23,24 +23,31 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// تست اتصال به دیتابیس + ساخت جدول
+// تست اتصال به دیتابیس + ساخت جدول + اضافه کردن ستون email اگر موجود نباشد
 pool.connect()
   .then(async (client) => {
     console.log("✅ PostgreSQL متصل شد");
 
     try {
+      // ایجاد جدول اگر موجود نباشد
       await client.query(`
         CREATE TABLE IF NOT EXISTS players (
           id SERIAL PRIMARY KEY,
           username VARCHAR(50) UNIQUE NOT NULL,
-          email VARCHAR(100) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
           resources JSONB DEFAULT '{}'
         );
       `);
       console.log("✅ جدول players آماده شد");
+
+      // اضافه کردن ستون email اگر وجود نداشته باشد
+      await client.query(`
+        ALTER TABLE players
+        ADD COLUMN IF NOT EXISTS email VARCHAR(100) UNIQUE NOT NULL;
+      `);
+      console.log("✅ ستون email اضافه شد (در صورت نبودن)");
     } catch (err) {
-      console.error("❌ خطا در ساخت جدول:", err);
+      console.error("❌ خطا در ساخت جدول یا ستون:", err);
     }
 
     client.release();
@@ -88,7 +95,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ورود پلیر (اصلاح شده)
+// ورود پلیر (فقط فیلدهای ضروری)
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
