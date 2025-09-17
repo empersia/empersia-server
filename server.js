@@ -91,10 +91,10 @@ app.post("/api/register", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // ✅ منابع اولیه
+    // ✅ منابع اولیه هر پلیر جدید
     const initialResources = { wood: 0, stone: 0, iron: 0 };
 
-    // ✅ ثبت با منابع
+    // ✅ ثبت با منابع مستقل
     await pool.query(
       "INSERT INTO players (username, email, password, resources) VALUES ($1, $2, $3, $4)",
       [username, email, hashed, initialResources]
