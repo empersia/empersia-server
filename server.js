@@ -90,9 +90,14 @@ app.post("/api/register", async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
+
+    // ✅ منابع اولیه
+    const initialResources = { wood: 0, stone: 0, iron: 0 };
+
+    // ✅ ثبت با منابع
     await pool.query(
-      "INSERT INTO players (username, email, password) VALUES ($1, $2, $3)",
-      [username, email, hashed]
+      "INSERT INTO players (username, email, password, resources) VALUES ($1, $2, $3, $4)",
+      [username, email, hashed, initialResources]
     );
 
     res.json({ success: true, message: "ثبت‌نام با موفقیت انجام شد" });
