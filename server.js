@@ -23,45 +23,39 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// تست اتصال به دیتابیس + ساخت جدول و ستون email
+// تست اتصال به دیتابیس + ساخت جدول و ستون email + resources + last_login
 pool.connect()
   .then(async (client) => {
     console.log("✅ PostgreSQL متصل شد");
 
     try {
-      // ایجاد جدول اگر موجود نباشد
       await client.query(`
         CREATE TABLE IF NOT EXISTS players (
           id SERIAL PRIMARY KEY,
           username VARCHAR(50) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
-          resources JSONB DEFAULT '{}'
+          email VARCHAR(100) UNIQUE NOT NULL,
+          resources JSONB DEFAULT '{"wood":0,"stone":0,"iron":0}',
+          last_login TIMESTAMP
         );
       `);
       console.log("✅ جدول players آماده شد");
 
-      // اضافه کردن ستون email بدون NOT NULL اگر وجود نداشته باشد
+      // اطمینان از وجود ستون last_login در جدول (برای دیتابیس‌های قدیمی)
       await client.query(`
-        ALTER TABLE players
-        ADD COLUMN IF NOT EXISTS email VARCHAR(100) UNIQUE;
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name='players' AND column_name='last_login'
+          ) THEN
+            ALTER TABLE players ADD COLUMN last_login TIMESTAMP;
+          END IF;
+        END$$;
       `);
 
-      // مقداردهی پیش‌فرض برای رکوردهای قدیمی
-      await client.query(`
-        UPDATE players
-        SET email = 'unknown@example.com'
-        WHERE email IS NULL;
-      `);
-
-      // سپس ستون را NOT NULL کنیم
-      await client.query(`
-        ALTER TABLE players
-        ALTER COLUMN email SET NOT NULL;
-      `);
-
-      console.log("✅ ستون email آماده و NOT NULL شد");
     } catch (err) {
-      console.error("❌ خطا در ساخت جدول یا ستون:", err);
+      console.error("❌ خطا در ساخت جدول:", err);
     }
 
     client.release();
@@ -70,7 +64,7 @@ pool.connect()
     console.error("❌ خطا در اتصال به PostgreSQL: ", err);
   });
 
-// Middleware برای دریافت JSON
+// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -79,7 +73,7 @@ app.get("/api", (req, res) => {
   res.send("Empersia API is running ✅");
 });
 
-// ثبت‌نام پلیر
+// ----------------- ثبت‌نام -----------------
 app.post("/api/register", async (req, res) => {
   const { username, password, email } = req.body;
   if (!username || !password || !email) {
@@ -87,7 +81,6 @@ app.post("/api/register", async (req, res) => {
   }
 
   try {
-    // بررسی تکراری بودن یوزرنیم یا ایمیل
     const check = await pool.query(
       "SELECT * FROM players WHERE username=$1 OR email=$2",
       [username, email]
@@ -109,7 +102,7 @@ app.post("/api/register", async (req, res) => {
   }
 });
 
-// ورود پلیر (اصلاح شده)
+// ----------------- ورود -----------------
 app.post("/api/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -128,14 +121,19 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
     }
 
-    // فقط فیلدهای ضروری به کلاینت ارسال می‌شود
+    // آپدیت تاریخ آخرین ورود
+    await pool.query(
+      "UPDATE players SET last_login = NOW() WHERE username = $1",
+      [username]
+    );
+
     res.json({
       success: true,
       player: {
-        id: player.id,
         username: player.username,
         email: player.email,
-        resources: player.resources
+        resources: player.resources,
+        last_login: new Date().toISOString()
       }
     });
   } catch (err) {
@@ -144,14 +142,49 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
-// WebSocket
+// ----------------- وب‌سوکت -----------------
 io.on("connection", (socket) => {
   console.log("✅ کاربر وصل شد:", socket.id);
   socket.emit("message", "خوش آمدید! اتصال موفق بود.");
 
+  // پاسخ به ping
   socket.on("ping", (data) => {
     console.log("📨 دریافت ping:", data);
     socket.emit("pong", "pong از سرور");
+  });
+
+  // بروزرسانی منابع در دیتابیس بر اساس username
+  socket.on("update_resources", async (data) => {
+    const { username, resources } = data;
+    if (!username || !resources) return;
+
+    try {
+      await pool.query(
+        "UPDATE players SET resources = $1 WHERE username = $2",
+        [resources, username]
+      );
+      socket.emit("resource_update", resources);
+      console.log(`💾 منابع پلیر ${username} ذخیره شد:`, resources);
+    } catch (err) {
+      console.error("❌ خطا در ذخیره منابع:", err);
+    }
+  });
+
+  // دریافت منابع فعلی از دیتابیس بر اساس username
+  socket.on("get_resources", async (username) => {
+    try {
+      const result = await pool.query(
+        "SELECT resources FROM players WHERE username=$1",
+        [username]
+      );
+      if (result.rows.length > 0) {
+        socket.emit("resource_update", result.rows[0].resources);
+      } else {
+        socket.emit("resource_update", { wood: 0, stone: 0, iron: 0 });
+      }
+    } catch (err) {
+      console.error("❌ خطا در گرفتن منابع:", err);
+    }
   });
 
   socket.on("disconnect", () => {
