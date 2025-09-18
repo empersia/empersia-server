@@ -41,7 +41,6 @@ pool.connect()
       `);
       console.log("✅ جدول players آماده شد");
 
-      // اطمینان از وجود ستون last_login در جدول (برای دیتابیس‌های قدیمی)
       await client.query(`
         DO $$
         BEGIN
@@ -91,10 +90,8 @@ app.post("/api/register", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // ✅ منابع اولیه هر پلیر جدید
     const initialResources = { wood: 0, stone: 0, iron: 0 };
 
-    // ✅ ثبت با منابع مستقل
     await pool.query(
       "INSERT INTO players (username, email, password, resources) VALUES ($1, $2, $3, $4)",
       [username, email, hashed, initialResources]
@@ -126,7 +123,6 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ error: "نام کاربری یا رمز عبور اشتباه است" });
     }
 
-    // آپدیت تاریخ آخرین ورود
     await pool.query(
       "UPDATE players SET last_login = NOW() WHERE username = $1",
       [username]
@@ -152,13 +148,12 @@ io.on("connection", (socket) => {
   console.log("✅ کاربر وصل شد:", socket.id);
   socket.emit("message", "خوش آمدید! اتصال موفق بود.");
 
-  // پاسخ به ping
   socket.on("ping", (data) => {
     console.log("📨 دریافت ping:", data);
     socket.emit("pong", "pong از سرور");
   });
 
-  // بروزرسانی منابع در دیتابیس بر اساس username
+  // بروزرسانی منابع
   socket.on("update_resources", async (data) => {
     const { username, resources } = data;
     if (!username || !resources) return;
@@ -168,14 +163,14 @@ io.on("connection", (socket) => {
         "UPDATE players SET resources = $1 WHERE username = $2",
         [resources, username]
       );
-      socket.emit("resource_update", resources);
+      socket.emit("resource_update", { username, resources });
       console.log(`💾 منابع پلیر ${username} ذخیره شد:`, resources);
     } catch (err) {
       console.error("❌ خطا در ذخیره منابع:", err);
     }
   });
 
-  // دریافت منابع فعلی از دیتابیس بر اساس username
+  // دریافت منابع
   socket.on("get_resources", async (username) => {
     try {
       const result = await pool.query(
@@ -183,9 +178,9 @@ io.on("connection", (socket) => {
         [username]
       );
       if (result.rows.length > 0) {
-        socket.emit("resource_update", result.rows[0].resources);
+        socket.emit("resource_update", { username, resources: result.rows[0].resources });
       } else {
-        socket.emit("resource_update", { wood: 0, stone: 0, iron: 0 });
+        socket.emit("resource_update", { username, resources: { wood: 0, stone: 0, iron: 0 } });
       }
     } catch (err) {
       console.error("❌ خطا در گرفتن منابع:", err);
